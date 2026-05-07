@@ -29,6 +29,8 @@ def calcular_multa(id_renta: int):
 
     fecha_referencia = renta["fecha_devolucion"] if renta["devuelto"] else date.today()
     dias_retraso = (fecha_referencia - renta["fecha_renta"]).days
+    if dias_retraso < 0:
+        dias_retraso = 0
     multa = dias_retraso * MULTA_POR_DIA
     renta["multa"] = multa
 
