@@ -28,7 +28,7 @@ def calcular_multa(id_renta: int):
         raise HTTPException(status_code=404, detail="Renta no encontrada.")
 
     fecha_referencia = renta["fecha_devolucion"] if renta["devuelto"] else date.today()
-    dias_retraso = (fecha_referencia - renta["fecha_renta"]).days
+    dias_retraso = (fecha_referencia - renta["fecha_limite"]).days
     if dias_retraso < 0:
         dias_retraso = 0
     multa = dias_retraso * MULTA_POR_DIA
@@ -43,10 +43,20 @@ def calcular_multa(id_renta: int):
 #   2. Llamar a calcular_multa internamente para obtener el monto
 #   3. Si la multa es 0 regresar mensaje indicando que no hay multa
 #   4. Si hay multa regresar desglose: dias de retraso, monto por dia y total
-#
-# @router.get("/{id_renta}")
-# def cobrar_multa(id_renta: int):
-#     pass
+@router.get("/{id_renta}")
+def cobrar_multa(id_renta: int):
+    resultado = calcular_multa(id_renta)
+
+    if resultado["multa"] == 0:
+        return {"message": "No hay multa para esta renta"}
+
+    return {
+        "id_renta": id_renta,
+        "dias_retraso": resultado["dias_retraso"],
+        "monto_por_dia": MULTA_POR_DIA,
+        "total": resultado["multa"]
+    }
+
 
 
 # EQUIPO 6 - Implementar GET /multas/pendientes
