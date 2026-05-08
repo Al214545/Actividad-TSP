@@ -27,13 +27,13 @@ class TelefonoIn(BaseModel):
 
 @router.get("/")
 def listar_clientes():
-    return [c for c in clientes]
+    return [c for c in clientes if c["activo"]]
 
 
 @router.get("/{id_cliente}")
 def buscar_cliente(id_cliente: int):
     for c in clientes:
-        if c["id"] == id_cliente:
+        if c["id"] == id_cliente and c["activo"]:
             return c
     raise HTTPException(status_code=404, detail="Cliente no encontrado.")
 
@@ -42,7 +42,7 @@ def buscar_cliente(id_cliente: int):
 def actualizar_telefono(id_cliente: int, data: TelefonoIn):
     for c in clientes:
         if c["id"] == id_cliente and c["activo"]:
-            c["email"] = data.telefono
+            c["telefono"] = data.telefono
             return {"mensaje": f"Telefono actualizado para '{c['nombre']}'."}
     raise HTTPException(status_code=404, detail="Cliente no encontrado o inactivo.")
 
