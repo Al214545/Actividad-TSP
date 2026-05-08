@@ -58,9 +58,44 @@ def actualizar_telefono(id_cliente: int, data: TelefonoIn):
 #   5. Agregar a clientes con activo=True y rentas_activas=0
 #   6. Regresar el cliente creado
 #
-# @router.post("/")
-# def registrar_cliente(data: ClienteIn):
-#     pass
+@router.post("/")
+def registrar_cliente(data: ClienteIn):
+    
+    #1. Validar que nombre y email no esten vacios
+    if not data.nombre.strip() or not data.email.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="El nombre y el email no pueden estar vacios."
+        )
+    
+    #2. Verificar que el email no este ya registrado en otro cliente activo
+    for c in clientes:
+        if c["email"].lower()==data.email.lower() and c["activo"]:
+            raise HTTPException(
+                status_code=400,
+                detail="El email ya esta registrado para otro cliente activo."
+            )
+    
+    #3. Generar id nuevo (max id actual +1)
+    nuevo_id = max((c["id"] for c in clientes), default=0) + 1
+    
+    #4. Crear el nuevo cliente
+    nuevo_cliente = {
+        "id": nuevo_id,
+        "nombre": data.nombre.strip(),
+        "telefono": data.telefono,
+        "email": data.email.strip(),
+        "activo": True,
+        "rentas_activas": 0,
+    }
+    
+    #5. Agregar a la lista de clientes
+    clientes.append(nuevo_cliente)
+    
+    #6. Regresar el cliente creado
+    return nuevo_cliente
+
+
 
 
 # EQUIPO 2 - Implementar DELETE /clientes/{id}
