@@ -53,18 +53,15 @@ def procesar_renta(data: RentaIn):
     juego["disponible"] = False
     return nueva_renta
 
+@router.post("/")
+def rentar_videojuego(data: RentaIn):
+    if data.dias <= 0 or data.dias > 7:
+        raise HTTPException(status_code=400, detail="Dias debe ser mayor a 0 y no mayor a 7.")
 
-# EQUIPO 3 - Implementar POST /rentas/
-# El endpoint debe:
-#   1. Recibir un body tipo RentaIn con: id_cliente, id_videojuego, dias
-#   2. Validar que dias sea mayor a 0 y no mayor a 7
-#      si no cumple, lanzar HTTPException status 400
-#   3. Llamar a procesar_renta() internamente o replicar su logica
-#   4. Regresar la renta creada con fecha_renta, fecha_limite y precio total
-#
-# @router.post("/")
-# def rentar_videojuego(data: RentaIn):
-#     pass
+    nueva_renta = procesar_renta(data)
+    juego = next((v for v in videojuegos if v["id"] == data.id_videojuego), None)
+    nueva_renta["precio_total"] = juego["precio_renta"] * data.dias
+    return nueva_renta
 
 
 # EQUIPO 3 - Implementar GET /rentas/cliente/{id_cliente}
