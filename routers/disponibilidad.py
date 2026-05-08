@@ -64,6 +64,26 @@ def listar_disponibles():
 #      que lo tiene y fecha limite de devolucion
 #   4. Regresar la lista de videojuegos actualmente rentados con esa info
 #
-# @router.get("/rentados")
-# def listar_rentados():
-#     pass
+def listar_rentados():
+    rentados = []
+    for v in videojuegos:
+        if not v["activo"] or v["disponible"]:
+            continue
+        renta_activa = next(
+            (r for r in rentas if r["id_videojuego"] == v["id"] and not r["devuelto"]),
+            None,
+        )
+        cliente_nombre = "desconocido"
+        fecha_limite = "desconocida"
+        if renta_activa:
+            cliente = next((c for c in clientes if c["id"] == renta_activa["id_cliente"]), None)
+            cliente_nombre = cliente["nombre"] if cliente else "desconocido"
+            fecha_limite = str(renta_activa["fecha_limite"])
+        rentados.append({
+            "id": v["id"],
+            "titulo": v["titulo"],
+            "plataforma": v["plataforma"],
+            "cliente": cliente_nombre,
+            "fecha_limite": fecha_limite,
+        })
+    return rentados
