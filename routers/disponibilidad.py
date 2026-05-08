@@ -15,7 +15,7 @@ router = APIRouter()
 
 @router.get("/conteo")
 def contar_disponibles():
-    total = len(videojuegos)
+    total = len([v for v in videojuegos if v["disponible"] and v["activo"]])
     return {"total_disponibles": total}
 
 
