@@ -13,11 +13,11 @@ from datos import videojuegos, clientes, rentas
 
 router = APIRouter()
 
-
 @router.get("/ocupacion")
 def porcentaje_ocupacion():
-    total   = len(videojuegos)
-    rentados = len([v for v in videojuegos if not v["disponible"]])
+    activos  = [v for v in videojuegos if v["activo"]]
+    total    = len(activos)
+    rentados = len([v for v in activos if not v["disponible"]])
     if total == 0:
         return {"porcentaje": 0}
     porcentaje = (rentados / total) * 100
@@ -26,8 +26,8 @@ def porcentaje_ocupacion():
 
 @router.get("/")
 def resumen_general():
-    total_clientes    = len(clientes)
-    total_disponibles = len(videojuegos)
+    total_clientes    = len([c for c in clientes if c["activo"]])
+    total_disponibles = len([v for v in videojuegos if v["activo"] and v["disponible"]])
     rentas_activas    = len([r for r in rentas if not r["devuelto"]])
     rentas_vencidas   = len([r for r in rentas if not r["devuelto"] and date.today() > r["fecha_limite"]])
 
@@ -37,6 +37,7 @@ def resumen_general():
         "rentas_activas":    rentas_activas,
         "rentas_vencidas":   rentas_vencidas,
     }
+
 
 
 # EQUIPO 9 - Implementar GET /dashboard/completo
