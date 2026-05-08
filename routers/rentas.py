@@ -76,6 +76,24 @@ def procesar_renta(data: RentaIn):
 #   4. Para cada renta agregar el titulo del juego en la respuesta
 #   5. Regresar la lista de rentas del cliente
 #
-# @router.get("/cliente/{id_cliente}")
-# def listar_rentas_cliente(id_cliente: int):
-#     pass
+@router.get("/cliente/{id_cliente}")
+def listar_rentas_cliente(id_cliente: int):
+    cliente = next((c for c in clientes if c["id"] == id_cliente and c["activo"]), None)
+    
+    if not cliente:
+        raise HTTPException(
+            status_code=404, 
+            detail="Cliente no encontrado o inactivo."
+        )
+    historial_cliente = []
+    
+    for renta in rentas:
+        if renta["id_cliente"] == id_cliente:
+            juego = next((v for v in videojuegos if v["id"] == renta["id_videojuego"]), None)
+            
+            item = renta.copy()
+            item["titulo_juego"] = juego["titulo"] if juego else "Título no disponible"
+            
+            historial_cliente.append(item)
+
+    return historial_cliente
