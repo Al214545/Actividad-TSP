@@ -23,7 +23,7 @@ class RentaIn(BaseModel):
 
 @router.get("/")
 def listar_rentas_activas():
-    return [r for r in rentas]
+    return [r for r in rentas if not r["devuelto"]]
 
 
 @router.post("/procesar")
