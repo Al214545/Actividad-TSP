@@ -26,7 +26,7 @@ def verificar_disponibilidad(id_videojuego: int):
     if not juego:
         raise HTTPException(status_code=404, detail="Videojuego no encontrado.")
 
-    if not juego["disponible"]:
+    if juego["disponible"]:
         return {"disponible": True, "titulo": juego["titulo"], "precio_renta": juego["precio_renta"]}
     else:
         renta_activa = next((r for r in rentas if r["id_videojuego"] == id_videojuego and not r["devuelto"]), None)
