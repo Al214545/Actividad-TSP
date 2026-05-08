@@ -24,12 +24,12 @@ class VideoJuegoIn(BaseModel):
 
 @router.get("/")
 def listar_videojuegos():
-    return [v for v in videojuegos]
+    return [v for v in videojuegos if v["activo"]]
 
 
 @router.get("/genero")
 def buscar_por_genero(genero: str):
-    resultados = [v for v in videojuegos if v["activo"] and genero in v["genero"]]
+    resultados = [v for v in videojuegos if v["activo"] and genero.lower() == v["genero"].lower()]
     if not resultados:
         raise HTTPException(status_code=404, detail=f"No se encontraron juegos del genero '{genero}'")
     return resultados
@@ -40,8 +40,8 @@ def eliminar_videojuego(id_videojuego: int):
     for v in videojuegos:
         if v["id"] == id_videojuego and v["activo"]:
             v["activo"] = False
-            return {"mensaje": f"'{v['titulo']}' eliminado del catalogo."}
-    raise HTTPException(status_code=404, detail="Videojuego no encontrado.")
+            return {"mensaje": f"'{v['titulo']}' eliminado del catalogo.", "id": id_videojuego}
+    raise HTTPException(status_code=404, detail="Videojuego no encontrado o ya fue eliminado.")
 
 
 # EQUIPO 1 - Implementar POST /videojuegos/
@@ -68,3 +68,33 @@ def eliminar_videojuego(id_videojuego: int):
 # @router.get("/{id_videojuego}")
 # def obtener_videojuego(id_videojuego: int):
 #     pass
+
+
+@router.post("/", status_code=201)
+def agregar_videojuego(data: VideoJuegoIn):
+    if not data.titulo.strip():
+        raise HTTPException(status_code=400, detail="El titulo no puede estar vacio.")
+    if data.precio_renta <= 0:
+        raise HTTPException(status_code=400, detail="El precio_renta debe ser mayor a 0.")
+ 
+    nuevo_id = max((v["id"] for v in videojuegos), default=0) + 1
+ 
+    nuevo = {
+        "id": nuevo_id,
+        "titulo": data.titulo.strip(),
+        "genero": data.genero,
+        "plataforma": data.plataforma,
+        "precio_renta": data.precio_renta,
+        "disponible": True,
+        "activo": True,
+    }
+    videojuegos.append(nuevo)
+    return nuevo
+ 
+@router.get("/{id_videojuego}")
+def obtener_videojuego(id_videojuego: int):
+    # Buscar solo entre activos
+    for v in videojuegos:
+        if v["id"] == id_videojuego and v["activo"]:
+            return v
+    raise HTTPException(status_code=404, detail="Videojuego no encontrado o esta inactivo.") 
