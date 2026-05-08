@@ -57,8 +57,6 @@ def cobrar_multa(id_renta: int):
         "total": resultado["multa"]
     }
 
-
-
 # EQUIPO 6 - Implementar GET /multas/pendientes
 # El endpoint debe:
 #   1. No recibir parametros
@@ -67,6 +65,33 @@ def cobrar_multa(id_renta: int):
 #   4. Incluir nombre del cliente y titulo del juego
 #   5. Regresar lista con multas pendientes y total acumulado
 #
-# @router.get("/pendientes")
-# def listar_multas_pendientes():
-#     pass
+@router.get("/pendientes")
+def listar_multas_pendientes():
+    hoy = date.today()
+    pendientes = []
+    for renta in rentas:
+        # Solo rentas no devueltas
+        if renta["devuelto"]:
+            continue
+        dias_retraso = (
+            hoy - renta["fecha_limite"]
+        ).days
+        # Solo si tiene retraso
+        if dias_retraso > 0:
+            multa_estimada = dias_retraso * MULTA_POR_DIA
+            cliente = next(
+                (c for c in clientes if c["id"] == renta["cliente_id"]),
+                None
+            )
+            juego = next(
+                (v for v in videojuegos if v["id"] == renta["videojuego_id"]),
+                None
+            )
+            pendientes.append({
+                "id_renta": renta["id"],
+                "cliente": cliente["nombre"] if cliente else "Desconocido",
+                "juego": juego["titulo"] if juego else "Desconocido",
+                "dias_retraso": dias_retraso,
+                "multa_estimada": multa_estimada
+            })
+    return pendientes
