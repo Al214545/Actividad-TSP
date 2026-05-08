@@ -50,6 +50,7 @@ def procesar_renta(data: RentaIn):
     }
     rentas.append(nueva_renta)
     cliente["rentas_activas"] += 1
+    juego["disponible"] = False
     return nueva_renta
 
 
