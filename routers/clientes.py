@@ -111,3 +111,25 @@ def registrar_cliente(data: ClienteIn):
 # @router.delete("/{id_cliente}")
 # def desactivar_cliente(id_cliente: int):
 #     pass
+
+
+@router.delete("/{id_cliente}")
+def desactivar_cliente(id_cliente: int):
+    for c in clientes:
+        if c["id"] == id_cliente:
+            if not c.get("activo"):
+                raise HTTPException(
+                    status_code=404, 
+                    detail="Cliente no encontrado o ya se encuentra inactivo."
+                )
+            if c.get("rentas_activas", 0) > 0:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"No se puede desactivar al cliente '{c['nombre']}' porque tiene {c['rentas_activas']} rentas activas."
+                )
+            
+            c["activo"] = False
+            
+            return {"mensaje": f"Cliente '{c['nombre']}' desactivado correctamente."}
+            
+    raise HTTPException(status_code=404, detail="Cliente no encontrado.")
