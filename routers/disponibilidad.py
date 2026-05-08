@@ -41,9 +41,19 @@ def verificar_disponibilidad(id_videojuego: int):
 #   3. Regresar lista con: id, titulo, plataforma y precio_renta de cada uno
 #   4. Si no hay ninguno disponible regresar lista vacia
 #
-# @router.get("/")
-# def listar_disponibles():
-#     pass
+@router.get("/")
+def listar_disponibles():
+    disponibles = [
+        {
+            "id": v["id"],
+            "titulo": v["titulo"],
+            "plataforma": v["plataforma"],
+            "precio_renta": v["precio_renta"]
+        }
+        for v in videojuegos
+        if v["activo"] and v["disponible"]
+    ]
+    return disponibles
 
 
 # EQUIPO 5 - Implementar GET /disponibilidad/rentados
