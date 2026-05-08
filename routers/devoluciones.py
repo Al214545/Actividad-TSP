@@ -9,14 +9,18 @@
 
 from fastapi import APIRouter, HTTPException
 from datetime import date
+
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from datos import videojuegos, clientes, rentas
+MULTA_POR_DIA = 20.0
 
 router = APIRouter()
 
 
 @router.get("/cliente/{id_cliente}")
 def buscar_renta_activa(id_cliente: int):
-    resultado = [r for r in rentas if r["id_cliente"] == id_cliente]
+    resultado = [r for r in rentas if r["id_cliente"] == id_cliente and not r["devuelto"]]
     if not resultado:
         raise HTTPException(status_code=404, detail=f"No se encontraron rentas para el cliente {id_cliente}.")
     return resultado
@@ -35,29 +39,52 @@ def procesar_devolucion(id_renta: int):
     renta["fecha_devolucion"] = date.today()
     renta["devuelto"]         = True
 
+    if juego:
+        juego["disponible"] = True
+    if cliente:
+        cliente["rentas_activas"] = max(0, cliente["rentas_activas"] - 1)
+
     return {"mensaje": f"Devolucion procesada: Renta #{id_renta}", "renta": renta}
 
 
-# EQUIPO 4 - Implementar POST /devoluciones/{id_renta}
-# El endpoint debe:
-#   1. Recibir id_renta como parametro en la URL
-#   2. Llamar a procesar_devolucion internamente
-#   3. Verificar si la devolucion es tardia (fecha_devolucion > fecha_limite)
-#   4. Regresar la renta actualizada indicando si fue tardia y cuantos dias de retraso
-#
-# @router.post("/{id_renta}")
-# def devolver_videojuego(id_renta: int):
-#     pass
+@router.post("/{id_renta}")
+def devolver_videojuego(id_renta: int):
+    resultado = procesar_devolucion(id_renta)
+    renta = resultado["renta"]
+
+    dias_retraso = (renta["fecha_devolucion"] - renta["fecha_limite"]).days
+    tardia = dias_retraso > 0
+
+    if tardia:
+        renta["multa"] = dias_retraso * MULTA_POR_DIA
+
+    return {
+        "mensaje":      "Devolucion registrada.",
+        "tardia":       tardia,
+        "dias_retraso": dias_retraso if tardia else 0,
+        "multa":        renta["multa"],
+        "renta":        renta,
+    }
 
 
-# EQUIPO 4 - Implementar GET /devoluciones/
-# El endpoint debe:
-#   1. No recibir parametros
-#   2. Filtrar todas las rentas que ya fueron devueltas (devuelto=True)
-#   3. Para cada devolucion agregar el nombre del cliente y titulo del juego
-#   4. Incluir la multa cobrada si hubo
-#   5. Regresar la lista completa de devoluciones
-#
-# @router.get("/")
-# def listar_devoluciones():
-#     pass
+@router.get("/")
+def listar_devoluciones():
+    resultado = []
+    for r in rentas:
+        if not r["devuelto"]:
+            continue
+
+        cliente = next((c for c in clientes    if c["id"] == r["id_cliente"]),    None)
+        juego   = next((v for v in videojuegos if v["id"] == r["id_videojuego"]), None)
+
+        resultado.append({
+            "id_renta":         r["id"],
+            "cliente":          cliente["nombre"] if cliente else "Desconocido",
+            "videojuego":       juego["titulo"]   if juego   else "Desconocido",
+            "fecha_renta":      r["fecha_renta"],
+            "fecha_limite":     r["fecha_limite"],
+            "fecha_devolucion": r["fecha_devolucion"],
+            "multa":            r["multa"],
+        })
+
+    return resultado
