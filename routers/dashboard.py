@@ -10,6 +10,7 @@
 from fastapi import APIRouter
 from datetime import date
 from datos import videojuegos, clientes, rentas
+from collections import Counter
 
 router = APIRouter()
 
@@ -40,27 +41,52 @@ def resumen_general():
 
 
 
-# EQUIPO 9 - Implementar GET /dashboard/completo
-# El endpoint debe:
-#   1. No recibir parametros
-#   2. Llamar a resumen_general() internamente para obtener los datos base
-#   3. Agregar: el juego mas rentado (top 1) y el cliente con mas rentas historicas
-#   4. Agregar el porcentaje de ocupacion actual
-#   5. Regresar todo en un solo objeto JSON
-#
-# @router.get("/completo")
-# def mostrar_dashboard():
-#     pass
+@router.get("/completo")
+def mostrar_dashboard():
+    datos = resumen_general()
+    ocupacion = porcentaje_ocupacion()
+    
+    if not rentas:
+        juego_top = None
+        cliente_top = None
+    else:
+        juegos_counter = Counter([r["id_videojuego"] for r in rentas])
+        juego_id_top = juegos_counter.most_common(1)[0][0]
+        juego_top = next((v["titulo"] for v in videojuegos if v["id"] == juego_id_top), None)
+        
+        clientes_counter = Counter([r["id_cliente"] for r in rentas])
+        cliente_id_top = clientes_counter.most_common(1)[0][0]
+        cliente_top = next((c["nombre"] for c in clientes if c["id"] == cliente_id_top), None)
+        
+    datos["juego_mas_rentado"] = juego_top
+    datos["cliente_mas_rentas"] = cliente_top
+    datos["porcentaje_ocupacion"] = ocupacion["porcentaje"]
+    
+    return datos
 
 
-# EQUIPO 9 - Implementar GET /dashboard/alerta
-# El endpoint debe:
-#   1. No recibir parametros
-#   2. Calcular el porcentaje de juegos activos que estan disponibles
-#   3. Si menos del 30% esta disponible, regresar alerta=True con cuantos quedan
-#   4. Si no hay stock critico, regresar alerta=False con mensaje positivo
-#   5. Incluir el porcentaje actual de disponibilidad en la respuesta
-#
-# @router.get("/alerta")
-# def alerta_stock_critico():
-#     pass
+@router.get("/alerta")
+def alerta_stock_critico():
+    activos = [v for v in videojuegos if v.get("activo", True)]
+    total_activos = len(activos)
+    
+    if total_activos == 0:
+        return {"alerta": False, "mensaje": "No hay juegos activos", "disponibilidad": 0.0, "quedan": 0}
+        
+    disponibles = len([v for v in activos if v.get("disponible", False)])
+    porcentaje = (disponibles / total_activos) * 100
+    
+    if porcentaje < 30:
+        return {
+            "alerta": True,
+            "mensaje": "Alerta de stock crítico",
+            "quedan": disponibles,
+            "disponibilidad": round(porcentaje, 1)
+        }
+    else:
+        return {
+            "alerta": False,
+            "mensaje": "Stock saludable",
+            "quedan": disponibles,
+            "disponibilidad": round(porcentaje, 1)
+        }
