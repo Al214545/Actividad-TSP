@@ -23,7 +23,7 @@ class RentaIn(BaseModel):
 
 @router.get("/")
 def listar_rentas_activas():
-    return [r for r in rentas]
+    return [r for r in rentas if not r["devuelto"]]
 
 
 @router.post("/procesar")
@@ -50,20 +50,18 @@ def procesar_renta(data: RentaIn):
     }
     rentas.append(nueva_renta)
     cliente["rentas_activas"] += 1
+    juego["disponible"] = False
     return nueva_renta
 
+@router.post("/")
+def rentar_videojuego(data: RentaIn):
+    if data.dias <= 0 or data.dias > 7:
+        raise HTTPException(status_code=400, detail="Dias debe ser mayor a 0 y no mayor a 7.")
 
-# EQUIPO 3 - Implementar POST /rentas/
-# El endpoint debe:
-#   1. Recibir un body tipo RentaIn con: id_cliente, id_videojuego, dias
-#   2. Validar que dias sea mayor a 0 y no mayor a 7
-#      si no cumple, lanzar HTTPException status 400
-#   3. Llamar a procesar_renta() internamente o replicar su logica
-#   4. Regresar la renta creada con fecha_renta, fecha_limite y precio total
-#
-# @router.post("/")
-# def rentar_videojuego(data: RentaIn):
-#     pass
+    nueva_renta = procesar_renta(data)
+    juego = next((v for v in videojuegos if v["id"] == data.id_videojuego), None)
+    nueva_renta["precio_total"] = juego["precio_renta"] * data.dias
+    return nueva_renta
 
 
 # EQUIPO 3 - Implementar GET /rentas/cliente/{id_cliente}
@@ -75,6 +73,24 @@ def procesar_renta(data: RentaIn):
 #   4. Para cada renta agregar el titulo del juego en la respuesta
 #   5. Regresar la lista de rentas del cliente
 #
-# @router.get("/cliente/{id_cliente}")
-# def listar_rentas_cliente(id_cliente: int):
-#     pass
+@router.get("/cliente/{id_cliente}")
+def listar_rentas_cliente(id_cliente: int):
+    cliente = next((c for c in clientes if c["id"] == id_cliente and c["activo"]), None)
+    
+    if not cliente:
+        raise HTTPException(
+            status_code=404, 
+            detail="Cliente no encontrado o inactivo."
+        )
+    historial_cliente = []
+    
+    for renta in rentas:
+        if renta["id_cliente"] == id_cliente:
+            juego = next((v for v in videojuegos if v["id"] == renta["id_videojuego"]), None)
+            
+            item = renta.copy()
+            item["titulo_juego"] = juego["titulo"] if juego else "Título no disponible"
+            
+            historial_cliente.append(item)
+
+    return historial_cliente
