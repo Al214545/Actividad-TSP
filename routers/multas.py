@@ -28,7 +28,9 @@ def calcular_multa(id_renta: int):
         raise HTTPException(status_code=404, detail="Renta no encontrada.")
 
     fecha_referencia = renta["fecha_devolucion"] if renta["devuelto"] else date.today()
-    dias_retraso = (fecha_referencia - renta["fecha_renta"]).days
+    dias_retraso = (fecha_referencia - renta["fecha_limite"]).days
+    if dias_retraso < 0:
+        dias_retraso = 0
     multa = dias_retraso * MULTA_POR_DIA
     renta["multa"] = multa
 
@@ -41,11 +43,19 @@ def calcular_multa(id_renta: int):
 #   2. Llamar a calcular_multa internamente para obtener el monto
 #   3. Si la multa es 0 regresar mensaje indicando que no hay multa
 #   4. Si hay multa regresar desglose: dias de retraso, monto por dia y total
-#
-# @router.get("/{id_renta}")
-# def cobrar_multa(id_renta: int):
-#     pass
+@router.get("/{id_renta}")
+def cobrar_multa(id_renta: int):
+    resultado = calcular_multa(id_renta)
 
+    if resultado["multa"] == 0:
+        return {"message": "No hay multa para esta renta"}
+
+    return {
+        "id_renta": id_renta,
+        "dias_retraso": resultado["dias_retraso"],
+        "monto_por_dia": MULTA_POR_DIA,
+        "total": resultado["multa"]
+    }
 
 # EQUIPO 6 - Implementar GET /multas/pendientes
 # El endpoint debe:
@@ -55,6 +65,33 @@ def calcular_multa(id_renta: int):
 #   4. Incluir nombre del cliente y titulo del juego
 #   5. Regresar lista con multas pendientes y total acumulado
 #
-# @router.get("/pendientes")
-# def listar_multas_pendientes():
-#     pass
+@router.get("/pendientes")
+def listar_multas_pendientes():
+    hoy = date.today()
+    pendientes = []
+    for renta in rentas:
+        # Solo rentas no devueltas
+        if renta["devuelto"]:
+            continue
+        dias_retraso = (
+            hoy - renta["fecha_limite"]
+        ).days
+        # Solo si tiene retraso
+        if dias_retraso > 0:
+            multa_estimada = dias_retraso * MULTA_POR_DIA
+            cliente = next(
+                (c for c in clientes if c["id"] == renta["cliente_id"]),
+                None
+            )
+            juego = next(
+                (v for v in videojuegos if v["id"] == renta["videojuego_id"]),
+                None
+            )
+            pendientes.append({
+                "id_renta": renta["id"],
+                "cliente": cliente["nombre"] if cliente else "Desconocido",
+                "juego": juego["titulo"] if juego else "Desconocido",
+                "dias_retraso": dias_retraso,
+                "multa_estimada": multa_estimada
+            })
+    return pendientes
